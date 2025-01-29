@@ -8,7 +8,7 @@ When you're out in the field, all you need to do is change the protocol and tran
 
 - MFD
 - GPS_TELEMETRY (direct NMEA from a GPS device)
-- MAVLINK (v1)
+- MAVLINK (v1 & v2)
 - RVOSD
 - FRSKY_D
 - FRSKY_X (SMARTPORT)
