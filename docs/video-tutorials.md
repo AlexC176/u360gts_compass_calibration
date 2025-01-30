@@ -1,56 +1,55 @@
-# u360gts: Tutoriales en video
+# u360gts: Video Tutorials
 
-En este documento encontrarás una colección de videotutoriales sobre el montaje, configuración y puesta en funcionamiento del seguidor de antena tracker basado en u360gts.
+This document contains a collection of video tutorials on the assembly, configuration, and operation of the u360gts-based antenna tracker.
 
-Los tutoriales cuentan con audio en español, pero son bastante descriptivos. Además, con la ayuda de la traducción en tiempo real, te serán de gran utilidad.
+The tutorials have audio in Spanish, but they are highly descriptive. Additionally, with real-time translation assistance, they will be very useful to you.
 
 ## FpvDron
 
-A continuación, se presenta una serie de videos del canal FpvDron de nuestro compañero Alí. Hemos seleccionado los más relevantes para ofrecer una visión completa sobre la construcción de un seguidor de antena basado en u360gts:
+Below is a series of videos from the FpvDron channel by our colleague Alí. We have selected the most relevant ones to provide a complete overview of the construction of an antenna tracker based on u360gts:
 
-- **Montaje:** [Ver video](https://www.youtube.com/watch?v=IuYE1lLXkY0)
-- **Conexión de la electrónica:** [Ver video](https://www.youtube.com/watch?v=ZEjbbhweRec)
-- **Instalación del firmware:** [Ver video](https://www.youtube.com/watch?v=Z2dl-LvOSL0)
-- **Configuración y calibrado:** [Ver video](https://www.youtube.com/watch?v=kxVIFudHxLY)
-- **Conexión de Radiomaster TX16 vía Bluetooth:** [Ver video](https://www.youtube.com/watch?v=zv89bJ9mi-Q)
-- **Conexión WiFi con módulos ESP8266:** [Ver video](https://www.youtube.com/watch?v=Am0aIIYrj74)
-- **Conexión de Radiomaster TX16 vía WiFi:** [Ver video](https://www.youtube.com/watch?v=MUTNZ4WypaA)
-- **Test de seguimiento en tierra:** [Ver video](https://www.youtube.com/watch?v=1HyPOQHToS4)
-- **Pantalla, menú y botones:** [Ver video](https://www.youtube.com/watch?v=NeZVnWi3kQ4)
+- **Assembly:** [Watch video](https://www.youtube.com/watch?v=IuYE1lLXkY0)
+- **Electronics connection:** [Watch video](https://www.youtube.com/watch?v=ZEjbbhweRec)
+- **Firmware installation:** [Watch video](https://www.youtube.com/watch?v=Z2dl-LvOSL0)
+- **Configuration and calibration:** [Watch video](https://www.youtube.com/watch?v=kxVIFudHxLY)
+- **Radiomaster TX16 connection via Bluetooth:** [Watch video](https://www.youtube.com/watch?v=zv89bJ9mi-Q)
+- **WiFi connection with ESP8266 modules:** [Watch video](https://www.youtube.com/watch?v=Am0aIIYrj74)
+- **Radiomaster TX16 connection via WiFi:** [Watch video](https://www.youtube.com/watch?v=MUTNZ4WypaA)
+- **Ground tracking test:** [Watch video](https://www.youtube.com/watch?v=1HyPOQHToS4)
+- **Screen, menu, and buttons:** [Watch video](https://www.youtube.com/watch?v=NeZVnWi3kQ4)
 
-Puedes encontrar la lista completa en el siguiente enlace:
+You can find the complete playlist at the following link:
 
-- [Lista de reproducción completa](https://www.youtube.com/watch?v=ua7gbBApfA4&list=PLG0vZGQls1KWyV4DkdflKTLMkNfWgu9ky)
+- [Complete playlist](https://www.youtube.com/watch?v=ua7gbBApfA4&list=PLG0vZGQls1KWyV4DkdflKTLMkNfWgu9ky)
 
 ## Cuenca Minera RC
 
-Aquí encontrarás otros videos útiles sobre el sistema:
+Here you will find other useful videos about the system:
 
-- **Video de presentación:** [Ver video](https://www.youtube.com/watch?v=sT1UTuWx8Mo)
-- **Controladora y servo 360:** [Ver video](https://www.youtube.com/watch?v=JKdabdZEm9E)
-- **Montaje #1:** [Ver video](https://www.youtube.com/watch?v=GLP8tHSvMbY)
+- **Introduction video:** [Watch video](https://www.youtube.com/watch?v=sT1UTuWx8Mo)
+- **Controller and 360 servo:** [Watch video](https://www.youtube.com/watch?v=JKdabdZEm9E)
+- **Assembly #1:** [Watch video](https://www.youtube.com/watch?v=GLP8tHSvMbY)
 
-## Videos del canal oficial
+## Official Channel Videos
 
-En esta lista encontrarás videos oficiales sobre demostraciones de uso y funcionalidades, además de enlaces a otros videos recopilados con el tiempo. Espero que te resulten útiles:
+This playlist includes official videos showcasing usage demonstrations and functionalities, as well as links to other videos collected over time. I hope you find them useful:
 
-- [Lista de reproducción oficial](https://www.youtube.com/playlist?list=PLd9LMQxVS8EAfO0RYKOO9VDzhj-QLlBlo)
+- [Official playlist](https://www.youtube.com/playlist?list=PLd9LMQxVS8EAfO0RYKOO9VDzhj-QLlBlo)
 
-## Más información
+## More Information
 
-Puedes acceder a toda la documentación del proyecto, incluyendo manuales, esquemas, diseños 3D (oficiales y de la comunidad), firmware y muchas más guías y aportes de otros usuarios en el siguiente enlace:
+You can access all project documentation, including manuals, schematics, 3D designs (both official and community-created), firmware, and many more guides and contributions from other users at the following link:
 
-- [Repositorio oficial en GitHub](https://github.com/raul-ortega/u360gts)
+- [Official GitHub repository](https://github.com/raul-ortega/u360gts)
 
-## ¿Cómo obtener ayuda?
+## How to Get Help?
 
-Si tienes dudas o necesitas asistencia, puedes hacerlo a través de los siguientes canales:
+If you have any questions or need assistance, you can reach out through the following channels:
 
-- [Grupo de Facebook de u360gts](https://www.facebook.com/groups/u360gts/)
-- [Reportar un problema o consulta en GitHub](https://github.com/raul-ortega/u360gts/issues)
+- [u360gts Facebook Group](https://www.facebook.com/groups/u360gts/)
+- [Report an issue or inquiry on GitHub](https://github.com/raul-ortega/u360gts/issues)
 
 ---
 
-¡Espero que esta información te sea útil para configurar y aprovechar al máximo tu seguidor de antena u360gts!
-
+I hope this information helps you configure and make the most of your u360gts antenna tracker!
 
