@@ -1384,10 +1384,12 @@ void saveLastTilt(bool writteEeprom){
 	}
 }
 
+// updated this procedure to improve calibration success
 void updateCalibratePan()
 {
 	uint16_t deltaHeading;
-	float slope;
+	//float slope;
+	
 	// ENABLE CALIBRATING PAN0 PROCCESS
     if (STATE(CALIBRATE_PAN)) {
     	servoPanTimer = millis();
@@ -1399,7 +1401,7 @@ void updateCalibratePan()
         masterConfig.pan0_calibrated = 0;
         minPwmPan = 1500;
         maxPwmPan = 1500;
-        maxDeltaHeading = 0;
+        maxDeltaHeading = 0;             // not used
         if(masterConfig.mag_calibrated == 0) {
                 	ENABLE_STATE(CALIBRATE_MAG);
         }
@@ -1410,19 +1412,19 @@ void updateCalibratePan()
     //CALIBRATING PWMPAN0
     if(PROTOCOL(TP_CALIBRATING_PAN0) && !PROTOCOL(TP_CALIBRATING_MAG)){
     	if(masterConfig.pan0_calibrated == 0){
-			// CALCULATING MIN AND MAX PAN0
+			// CALCULATING MIN AND MAX PAN0 at 10Htz = 100, 5Hz = 200
 			if(millis() - servoPanTimer > 100 && (pwmPanState == FINDING_OUT_MIN_PWMPAN0 || pwmPanState == FINDING_OUT_MAX_PWMPAN0)){
 				trackerPosition.heading = getHeading();
 				deltaHeading = calculateDeltaHeading(trackerPosition.heading,targetPosition.heading);
-				if (deltaHeading > 2){
+				if (deltaHeading > 0){            // was previously 2
 					// SERVO IS STILL MOVING
 					targetPosition.heading = trackerPosition.heading;
 					if(pwmPanState == FINDING_OUT_MIN_PWMPAN0) {
-						pwmPan++;
+						pwmPan+=2;  // was ++
 						if(pwmPan > maxPwmPan + 100)
 							pwmPan = minPwmPan - 100;
 					} else if(pwmPanState == FINDING_OUT_MAX_PWMPAN0){
-						pwmPan--;
+						pwmPan-=2;  // was --
 						if(pwmPan < minPwmPan - 100)
 							pwmPan = maxPwmPan + 100;
 					}
@@ -1443,13 +1445,14 @@ void updateCalibratePan()
 				}
 				servoPanTimer = millis();
 			}
-			//CHECK IF MIN AND MAX PAN0 HAS BEEN WELL CALIBRATED 3 SECONDS LATER
+			//CHECK IF MIN AND MAX PAN0 HAS BEEN WELL CALIBRATED, 3 SECONDS LATER
 			if(pwmPanState == MIN_PWMPAN0_FOUND || pwmPanState == MAX_PWMPAN0_FOUND) {
 				if(millis() - servoPanTimer > 3000){
 					trackerPosition.heading = getHeading();
 					// due to interference the magnetometer could oscillate while the servo is stopped
 					deltaHeading = calculateDeltaHeading(trackerPosition.heading,targetPosition.heading);
-					if (deltaHeading > 50){
+					// reduced from >5 degrees to >=3degree
+					if (deltaHeading >= 30){
 						// SERVO IS STILL MOVING
 						targetPosition.heading = trackerPosition.heading;
 						if(pwmPanState == MIN_PWMPAN0_FOUND) {
@@ -1471,15 +1474,15 @@ void updateCalibratePan()
 						} else if(pwmPanState == MAX_PWMPAN0_FOUND) {
 							// CALIBRATION FIHISHED WITH SUCCESS
 							pwmPanState = PWMPAN0_CALCULATED_WITH_SUCCESS;
-							masterConfig.mag_calibrated = 1;
+							masterConfig.mag_calibrated = 1;  			// WHY ? 
 							masterConfig.pan0_calibrated = 1;
 							DISABLE_PROTOCOL(TP_CALIBRATING_PAN0);
 							masterConfig.min_pan_speed = (uint16_t)(maxPwmPan - minPwmPan)/2.0f;
 							masterConfig.pan0 = minPwmPan + masterConfig.min_pan_speed;
-							printf("Calibration has finished with success:\n");
+							printf("Pan calibration has finished successfully:\n");
 							printf("  set pan0=%d\n", masterConfig.pan0);
 							printf("  set min_pan_speed=%d\n", masterConfig.min_pan_speed);
-							printf("  set pan0_calibrated=%d\n", masterConfig.mag_calibrated);
+							printf("  set pan0_calibrated=%d\n", masterConfig.pan0_calibrated);
 							saveConfigAndNotify();
 							// ACTIVATE MAX PWMPAN CALCULATION
 							/*ENABLE_PROTOCOL(TP_CALIBRATING_MAXPAN);
@@ -1494,12 +1497,7 @@ void updateCalibratePan()
 
 			}
     	}
-
-
-
     }
-
-
     /*// CALIBRATE MAX PAN
 	if(PROTOCOL(TP_CALIBRATING_MAXPAN) && !PROTOCOL(TP_CALIBRATING_MAG)) {
 		trackerPosition.heading = getHeading();

@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
+#include <math.h>
 
 #include "platform.h"
 #include "version.h"
@@ -95,6 +96,13 @@ extern uint8_t EPS_MODE;
 extern uint16_t EPS_DISTANCE_GAIN;
 extern uint16_t EPS_FREQUENCY;
 
+extern uint16_t calib_rotation;
+extern float radius;
+extern float sd1;
+extern float sd2;
+extern float softIron[2][2];
+#define N_DECIMAL_POINTS_PRECISION (1000000)   // n = 3. Three decimal points.
+
 int16_t master_telemetry_protocol;
 
 controlRateConfig_t *getControlRateConfig(uint8_t profileIndex);
@@ -159,12 +167,12 @@ static uint8_t u360gts_logo[] = { 128, 32,
     '\x01',
 };
 
-static const char* const pageTitles[] = {
-    "U360GTS",
-    "ARMED",
-    "BATTERY",
-    "TELEMETRY",
-	"PLEASE WAIT"
+static const char* const pageTitles[PAGE_COUNT] = {
+    "U360GTS"
+    ,"ARMED"
+    ,"BATTERY"
+    ,"TELEMETRY"
+	,"PLEASE WAIT"
 #ifdef GPS
     ,"GPS"
 #endif
@@ -173,9 +181,12 @@ static const char* const pageTitles[] = {
 #endif
 	,"CLI MODE"
 	,"MAIN MENU"
+	,"BOOT MODE"
+	,"CALIB ERROR"
+	,"CALIB SUCCESS"
 };
 
-#define PAGE_COUNT (PAGE_RX + 1)
+//#define PAGE_COUNT (PAGE_RX + 1)
 
 const pageId_e cyclePageIds[] = {
     PAGE_TELEMETRY,
@@ -184,11 +195,9 @@ const pageId_e cyclePageIds[] = {
 #endif
     PAGE_BATTERY
 #ifdef ENABLE_DEBUG_OLED_PAGE
-    ,PAGE_DEBUG,
+    ,PAGE_DEBUG
 #endif
 };
-
-
 
 #define CYCLE_PAGE_ID_COUNT (sizeof(cyclePageIds) / sizeof(cyclePageIds[0]))
 
@@ -439,6 +448,11 @@ void updateRxStatus(void)
 
 void showTitle()
 {
+	if ( !(pageState.pageId < PAGE_COUNT) )
+	{
+		printf("invalid pageState.pageId:%i\n",pageState.pageId );
+		return;
+	}
     i2c_OLED_set_line(0);
     //i2c_OLED_send_string(pageTitles[pageState.pageId]);
 	if(pageState.pageId==PAGE_TELEMETRY) {
@@ -569,6 +583,65 @@ void showCalibratingMagPage(void)
 
 }
 
+void showCalibratingMagFailedPage(void)
+{
+    uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
+    tfp_sprintf(lineBuffer, "Mag Calib Failed");
+    i2c_OLED_set_line(rowIndex++);	
+    i2c_OLED_send_string(lineBuffer);
+	// print how far the tracker rotated
+    tfp_sprintf(lineBuffer, "Rotated: %03d", calib_rotation);
+    i2c_OLED_set_line(rowIndex++);
+    i2c_OLED_send_string(lineBuffer);
+	tfp_sprintf(lineBuffer, "Expected: 360-400");
+    i2c_OLED_set_line(rowIndex++);
+    i2c_OLED_send_string(lineBuffer);
+}
+
+void showCalibratingMagSuccessPage(void)
+{
+	// requires radius,sd1,sd2,softIron[][]
+	int integerPart; 
+    int decimalPart;
+	
+    uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
+    tfp_sprintf(lineBuffer, "Mag Calib Success");
+    i2c_OLED_set_line(rowIndex++);	
+    i2c_OLED_send_string(lineBuffer);
+	
+	i2c_OLED_set_line(rowIndex++);
+	tfp_sprintf(lineBuffer, "Radius=%d",(int)roundf(radius*1000));
+	i2c_OLED_send_string(lineBuffer);
+	
+	i2c_OLED_set_line(rowIndex++);
+	tfp_sprintf(lineBuffer, "STD=%d,%d",(int)roundf(sd1*1000),(int)roundf(sd2*1000));
+	i2c_OLED_send_string(lineBuffer);
+	
+    integerPart = (int)fabsf(softIron[0][0]);
+    decimalPart = ((int)fabsf(softIron[0][0]*N_DECIMAL_POINTS_PRECISION)%N_DECIMAL_POINTS_PRECISION);
+    i2c_OLED_set_line(rowIndex++);	
+	signbit(softIron[0][0]) ? tfp_sprintf(lineBuffer, "-%d.%d",integerPart,decimalPart) : tfp_sprintf(lineBuffer,"%d.%d",integerPart,decimalPart); 
+    i2c_OLED_send_string(lineBuffer);
+	
+	integerPart = (int)fabsf(softIron[0][1]);
+    decimalPart = ((int)fabsf(softIron[0][1]*N_DECIMAL_POINTS_PRECISION)%N_DECIMAL_POINTS_PRECISION);
+    i2c_OLED_set_line(rowIndex++);	
+	signbit(softIron[0][1]) ? tfp_sprintf(lineBuffer, "-%d.%d",integerPart,decimalPart) : tfp_sprintf(lineBuffer,"%d.%d",integerPart,decimalPart); 
+    i2c_OLED_send_string(lineBuffer);
+
+	integerPart = (int)fabsf(softIron[1][0]);
+    decimalPart = ((int)fabsf(softIron[1][0]*N_DECIMAL_POINTS_PRECISION)%N_DECIMAL_POINTS_PRECISION);
+    i2c_OLED_set_line(rowIndex++);	
+	signbit(softIron[1][0]) ? tfp_sprintf(lineBuffer, "-%d.%d",integerPart,decimalPart) : tfp_sprintf(lineBuffer,"%d.%d",integerPart,decimalPart); 
+    i2c_OLED_send_string(lineBuffer);
+	
+	integerPart = (int)fabsf(softIron[1][1]);
+    decimalPart = ((int)fabsf(softIron[1][1]*N_DECIMAL_POINTS_PRECISION)%N_DECIMAL_POINTS_PRECISION);
+    i2c_OLED_set_line(rowIndex++);	
+	signbit(softIron[1][1]) ? tfp_sprintf(lineBuffer, "-%d.%d",integerPart,decimalPart) : tfp_sprintf(lineBuffer,"%d.%d",integerPart,decimalPart); 
+    i2c_OLED_send_string(lineBuffer);
+}
+
 void showBootModePage(void)
 {
     uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
@@ -576,7 +649,6 @@ void showBootModePage(void)
     tfp_sprintf(lineBuffer, "Boot mode ...");
     i2c_OLED_set_line(rowIndex++);
     i2c_OLED_send_string(lineBuffer);
-
 }
 
 void showArmedPage(void)
@@ -691,10 +763,9 @@ void showMainMenuPage(){
 	}
 }
 
-
-
 void showCliModePage(void)
 {
+	//static const char *format = "%s %03d %03d %03d";
     uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
 
     i2c_OLED_set_line(rowIndex++);
@@ -715,7 +786,12 @@ void showCliModePage(void)
     tfp_sprintf(lineBuffer, "PWM TILT: %04d uS", pwmTilt);
     i2c_OLED_set_line(rowIndex++);
     i2c_OLED_send_string(lineBuffer);
-
+	
+	// added roll-pitch
+	//tfp_sprintf(lineBuffer, format, "I&H: ", inclination.values.rollDeciDegrees, inclination.values.pitchDeciDegrees, heading);
+    //padLineBuffer();
+    //i2c_OLED_set_line(rowIndex++);
+    //i2c_OLED_send_string(lineBuffer);
 }
 
 void showTelemetryPage(void){
@@ -1069,7 +1145,6 @@ void updateDisplay(void)
     if (!updateNow) {
         return;
     }
-
     nextDisplayUpdateAt = now + DISPLAY_UPDATE_FREQUENCY;
 
     /*//////
@@ -1079,7 +1154,6 @@ void updateDisplay(void)
 	updateTicker();
 	return;
     //////*/
-
 
     bool armedState = ARMING_FLAG(ARMED) ? true : false;
     bool armedStateChanged = armedState != previousArmedState;
@@ -1169,7 +1243,16 @@ void updateDisplay(void)
                 pageState.pageFlags |= PAGE_STATE_FLAG_FORCE_PAGE_CHANGE;
             }
         	break;
-        case PAGE_CLI_MODE:
+			
+		case PAGE_CALIBRATING_MAG_FAILED:
+			showCalibratingMagFailedPage();
+        	break;	
+			
+		case PAGE_CALIBRATING_MAG_SUCCESS:
+			showCalibratingMagSuccessPage();
+			break;
+			
+		case PAGE_CLI_MODE:
         		showCliModePage();
         	break;
         case PAGE_MENU:
@@ -1211,10 +1294,9 @@ void displayInit(rxConfig_t *rxConfigToUse,uint16_t telemetry_protocol)
     master_telemetry_protocol = telemetry_protocol;
 
     memset(&pageState, 0, sizeof(pageState));
-    displaySetPage(PAGE_WELCOME);
-
+    
+	displaySetPage(PAGE_WELCOME);
     updateDisplay();
-
     displaySetNextPageChangeAt(micros() + (1000 * 1000 * 5));
 }
 

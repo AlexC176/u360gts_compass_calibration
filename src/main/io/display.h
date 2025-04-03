@@ -31,7 +31,10 @@ typedef enum {
 #endif
 	PAGE_CLI_MODE,
 	PAGE_MENU,
-	PAGE_BOOT_MODE
+	PAGE_BOOT_MODE,
+	PAGE_CALIBRATING_MAG_FAILED,   // added new page for advanced calibration failure
+	PAGE_CALIBRATING_MAG_SUCCESS,  // added new page for success
+	PAGE_COUNT					   // number of elements
 } pageId_e;
 
 typedef enum {
