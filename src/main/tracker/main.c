@@ -751,9 +751,9 @@ void updateBatteryStatus(void){
 void updateFixedPages(void){
 
 	displayPageIndex =
-			PAGE_GPS * (displayPageIndex == PAGE_TELEMETRY && feature(FEATURE_GPS) && !PROTOCOL(TP_MFD)) + \
-			PAGE_BATTERY * ((displayPageIndex == PAGE_TELEMETRY && !feature(FEATURE_GPS) && (feature(FEATURE_VBAT) || feature(FEATURE_RSSI_ADC) || (masterConfig.rxConfig.rssi_channel > 0))) || (displayPageIndex == PAGE_GPS && (feature(FEATURE_VBAT) || feature(FEATURE_RSSI_ADC) || (masterConfig.rxConfig.rssi_channel > 0)))) + \
-			PAGE_TELEMETRY * (displayPageIndex == 0);
+			PAGE_GPS       *  (displayPageIndex == PAGE_TELEMETRY && feature(FEATURE_GPS) && !PROTOCOL(TP_MFD)) + \
+			PAGE_BATTERY   * ((displayPageIndex == PAGE_TELEMETRY && !feature(FEATURE_GPS) && (feature(FEATURE_VBAT) || feature(FEATURE_RSSI_ADC) || (masterConfig.rxConfig.rssi_channel > 0))) || (displayPageIndex == PAGE_GPS && (feature(FEATURE_VBAT) || feature(FEATURE_RSSI_ADC) || (masterConfig.rxConfig.rssi_channel > 0)))) + \
+			PAGE_TELEMETRY *  (displayPageIndex == 0);
 	if(displayPageIndex !=0 ){
 		//Show fixed page
 		displayShowFixedPage(displayPageIndex);
@@ -909,6 +909,7 @@ void calcEstimatedPosition(){
 
 void updateHeading(void){
 	// we update the heading every 14ms to get as many samples into the smooth array as possible
+	// 71.4Htz which drives the PID loop
 	if (millis() > time) {
 		time = millis() + 14;
 		trackerPosition.heading = getHeading();
@@ -941,12 +942,14 @@ void updateMenuButton(void){
 			/*
 			 * 	SI EL OFFSET EST� MODIFICADO, RESETEARLO
 			 */
-			if(menuState && !cliMode) {
+			//if(menuState && !cliMode) {
+			if(menuState) {
 				//MENU MODE
 				if (!currentState && calib_timer == 0) {
 					calib_timer = millis();
 				} else if (currentState && millis() - calib_timer < 1000) {
 					proccessMenu(MENU_BUTTON);
+					printf("proccessMenu(MENU_BUTTON)\n"); 
 					calib_timer = 0;
 				} else if (currentState && millis() - calib_timer < 1500) {
 					//button not pressed long enough
@@ -971,6 +974,7 @@ void updateMenuButton(void){
 					calib_timer = 0;
 					home_timer = 0;
 					enterMenuMode();
+					printf("enterMenuMode()\n"); 
 				}
 			}
 		// When trim offset is enabled, this button decrease the offset one unit
@@ -985,7 +989,6 @@ void updateMenuButton(void){
 				//FIX ME: RESET OFFSET TRIM
 			}
 		}
-
 		previousState = currentState;
 	}
 }
@@ -1013,6 +1016,7 @@ void updateSetHomeButton(void){
 					home_timer = millis();
 				} else if (homeButtonCurrentState && (millis() - home_timer < 1000)) {
 					proccessMenu(HOME_BUTTON);
+					printf("proccessMenu(HOME_BUTTON)\n"); 
 					home_timer = 0;
 				}
 			// Modo HOME
@@ -1140,7 +1144,8 @@ void updateTracking(void){
 		}
 
 		if(trackingStarted)  {
-			if(lostTelemetry == true && !cliMode){
+			// assime lostTelemetry true when using TP_SERVOTEST
+			if(lostTelemetry == true && !cliMode && !PROTOCOL(TP_SERVOTEST)){
 				pwmWriteServo(masterConfig.pan_pin,masterConfig.pan0);
 				return;
 			}
@@ -1153,8 +1158,9 @@ void updateTracking(void){
 				  pwmWriteServo(masterConfig.pan_pin,pwmPan);
 				  gotNewHeading = false;
 			}
-
-			if(!(OFFSET_TRIM_STATE == TRIM_STATE_DISABLED_BY_USER))
+			
+			// once tracking has started cannot enter menu mode, except for when using Pan TP_SERVOTEST
+			if(!(OFFSET_TRIM_STATE == TRIM_STATE_DISABLED_BY_USER) && !PROTOCOL(TP_SERVOTEST))
 				OFFSET_TRIM_STATE = TRIM_STATE_ENABLED;
 
 		} else {
@@ -1179,6 +1185,9 @@ void exitMenuMode(void) {
 
 void processMenuRoot(void){
 	menuOption = indexMenuOption % (OP_EXIT+1);
+	
+	printf("ProcessMenuRoot(%d)\n", menuOption);	
+	
 	if(menuOption == OP_EXIT) {
 		writeEEPROM();
 		systemReset();
@@ -1194,6 +1203,9 @@ void processMenuRoot(void){
 		menuState = MENU_EASING;
 	else if(menuOption == OP_TELEMETRY)
 		menuState = MENU_TELEMETRY;
+	// pan testing
+	else if(menuOption == OP_PAN)
+		menuState = MENU_PAN;
 	else
 		menuState = MENU_ROOT;
 }
@@ -1332,12 +1344,46 @@ void processMenuTelemetryBaudrate(void){
 	indexMenuOption = OP_TELMETRY_SAVE;
 }
 
+// pan testing
+void processMenuPan(void) {
+	
+	menuOption = indexMenuOption % (OP_PAN_EXIT+1);
+	if(menuOption == OP_PAN_EXIT)
+	{	
+		menuState = MENU_ROOT;
+		indexMenuOption = OP_EXIT;
+		return;
+	}
+	else {
+		if(menuOption == OP_PAN_0_DEGREE) {
+			//printf("Moving pan servo to 0 deg\n");
+			SERVOTEST_HEADING=0;
+		} else if(menuOption == OP_PAN_90_DEGREE) {
+			//printf("Moving pan servo to 90 deg\n");
+			SERVOTEST_HEADING=90;	
+		} else if(menuOption == OP_PAN_180_DEGREE) {
+			//printf("Moving pan servo to 180 deg\n");
+			SERVOTEST_HEADING=180;		
+		} else if(menuOption == OP_PAN_270_DEGREE) {
+			//printf("Moving pan servo to 270 deg\n");
+			SERVOTEST_HEADING=270;	
+		}
+		exitMenuMode();
+		// from serial_cli.c
+		DISABLE_PROTOCOL(masterConfig.telemetry_protocol);
+		ENABLE_PROTOCOL(TP_SERVOTEST);
+		ENABLE_SERVO(SERVOPAN_MOVE);
+	}
+}
+
 void proccessMenu(uint8_t menuButton) {
 
 	if(menuButton == MENU_BUTTON) {
 		indexMenuOption++;
-		showMainMenuPage();
+		//showMainMenuPage();
 	} else if(menuButton == HOME_BUTTON) {
+		
+		printf("Processing MenuState=%d\n", menuState);
 		// root
 		if(menuState == MENU_ROOT) {
 			processMenuRoot();
@@ -1364,12 +1410,16 @@ void proccessMenu(uint8_t menuButton) {
 		// Telemetry Baudrate
 		} else if (menuState == MENU_TELEMETRY_BAUDRATE) {
 			processMenuTelemetryBaudrate();
+		// For Testing Set Pan
+		} else if (menuState == MENU_PAN) {
+			processMenuPan();
 		}
 		if(menuState != MENU_EPS_DISTANCEGAIN && menuState != MENU_EPS_FREQUENCY)
 			indexMenuOption=0;
-		displayShowFixedPage(PAGE_MENU);
+		// detect if exitMenuMode() was called
+		//if (menuState != MENU_IDEL)
+		//	 displayShowFixedPage(PAGE_MENU);
 	}
-
 }
 
 float map(long x, long in_min, long in_max, long out_min, long out_max)

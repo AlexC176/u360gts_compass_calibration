@@ -67,17 +67,17 @@
 //#define TM_12  -0.1674808396f
 //#define TM_21  0.200471249f
 //#define TM_22  1.1800732518f
-#define TM_11  0.512116f
-#define TM_12  -1.110875f
-#define TM_21  0.908144f
-#define TM_22  0.418656f
+//#define TM_11  0.512116f
+//#define TM_12  -1.110875f
+//#define TM_21  0.908144f
+//#define TM_22  0.418656f
 #define COMPASS_UPDATE_FREQUENCY_10HZ 100000
-#define MAG_SAMPLES 32              // 32 samples in array  for bitwise functions
-#define MAG_SAMPLES_F 32.0f         // 32 samples in array  for bitwise functions
-#define ADC_SAMPLE_P1 5   		    // 5 adc samples to point 1 
-#define MAG_ANGLE_THRESHOLD 10.0f    // Mathematically should be 11 ( 360/MAG_SAMPLES )
-#define MAG_DISTANCE_THRESHOLD 10.0f // was 13.0f
-#define N_DECIMAL_POINTS_PRECISION (1000000)   // n = 3. Three decimal points.
+#define MAG_SAMPLES 32              // 32 samples in array
+#define MAG_SAMPLES_F 32.0f         // 32 samples in array
+#define ADC_SAMPLE_P1 5   		    // 5 adc samples to initial point 1 
+#define MAG_ANGLE_THRESHOLD 9.0f    // Mathematically should be 11 ( 360 degrees/MAG_SAMPLES )
+#define MAG_DISTANCE_THRESHOLD 10.0f // Ensures sufficient distance for accurate angle calculations
+#define N_DECIMAL_POINTS_PRECISION (1000000)   // n = 3. Three decimal points for OLED printing
 
 mag_t mag;                   // mag access functions
 
@@ -93,10 +93,14 @@ extern uint8_t  cliMode;
 int16_t magADC[XYZ_AXIS_COUNT];
 sensor_align_e magAlign = 0;   // use DEFAULT board alignment
 
-uint16_t  calib_rotation = 0;  // used to pass to display
-float	 radius=0;			   // used to pass to display
+// globals to pass to display module
+uint16_t calib_rotation = 0;
+float	 radius=0;
+float 	 eValScale = 0;
+float    phase = 0;
 float 	 sd1=0;
 float    sd2=0;
+
 float    softIron[2][2] = {	{1.0f, 0.0f},
 							{0.0f, 1.0f} 
 							};
@@ -167,15 +171,17 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 		// lock at update frequency
 		if ((int32_t)(currentTime - nextUpdateAt) < 0)
 			return;
+		// HMC5883 runs at 15Htz continous mode, QMC at 200Htz continous mode
 		nextUpdateAt = currentTime + COMPASS_UPDATE_FREQUENCY_10HZ;
 		
 		// populate magADC
 		if (!mag.read(magADC))
 		{
+			// haven't seen this happen
 			printf("mag.read() i2c failed\n");
 			return;
 		}
-		// forced to default alignment - TO FIX
+		// forced to default alignment, need to fix magAlign to read masterconfig
 		alignSensors(magADC, magADC, magAlign); 
 		
 		// calibrate mag triggered
@@ -213,14 +219,14 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 		if (notifyUpdateAt != 0 && currentTime > notifyUpdateAt)
 		{
 			// display
-			if(cliMode && feature(FEATURE_DISPLAY)) {
+			if(cliMode) {
 			    displayShowFixedPage(PAGE_CLI_MODE);
-			} 
+			}
 			  else {
 				displayResetPageCycling();   // page 1 - telemetry
 			    displayEnablePageCycling();  // enable page cycle
 				notifyUpdateAt = 0;
-			   }
+			 }
 		}
 		
 		// regular compass read - apply calibration adjustments
@@ -248,8 +254,8 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 		//
 		if (tCal != 0) {
 			
-			// maximum 15 seconds, or buffer full
-			if ( ((nextUpdateAt - tCal) < 15000000) && evSample < MAG_SAMPLES ) 
+			// maximum 15 seconds, or mag samples buffer full, or rotated more than 380 degrees
+			if ( ((nextUpdateAt - tCal) < 15000000) && evSample < MAG_SAMPLES && sum_vec_angle < 380.0f ) 
 			{
             
 			//printf("sample %i taken with nextSampleAt=%i\n", adc_sample, nextSampleAt);
@@ -289,17 +295,22 @@ void updateCompass(flightDynamicsTrims_t *magZero)
                 }
                 vec_angle_p12 *= (180.0f/M_PIf);
 
-                //printf("p2x=%i, p2y=%i, p1x=%i, p1y=%i\n", point.x[2], point.y[2], point.x[1], point.y[1]);
+				// print every Mag Reading
+                printf("ts=%u, p2x=%d, p2y=%d, p1x=%d, p1y=%d,", currentTime, point.x[2], point.y[2], point.x[1], point.y[1]);
                 //printf("Angle between p1 and p2=%f,", vec_angle_p12 );
-                dist = sqrtf( powf(point.x[2]-point.x[1],2) + powf(point.y[2]-point.y[1],2) );
-                //printf(" dist=%f\n", dist );
+                npf_snprintf(buf, sizeof(buf), "%f",vec_angle_p12);
+				printf(" vap12=%s,",buf);
+				
+				dist = sqrtf( powf(point.x[2]-point.x[1],2) + powf(point.y[2]-point.y[1],2) );
+                npf_snprintf(buf, sizeof(buf), "%f",dist);
+				printf(" dist=%s,", buf);
+				
+				//printf(" dist=%f\n", dist );
                 // could use - atan2(sin(x-y), cos(x-y))
                 delta_angle = 180.0f - fabsf(fmodf(fabsf(vec_angle_p01 - vec_angle_p12), 360.0f) - 180.0f);
-                
 				//printf("Delta Angle=%f,", delta_angle );
-                //npf_snprintf(buf, sizeof(buf), "%f",delta_angle);
-				//printf("delta_angle=%s\n", buf);
-				
+                npf_snprintf(buf, sizeof(buf),"%f",delta_angle);
+				printf(" da=%s\n", buf);
 				//printf(" using Vector Angle p01 =%f\n", vec_angle_p01);
               
                 // greater than threshold angle and greater than a threshold distance to avoid noise
@@ -327,7 +338,8 @@ void updateCompass(flightDynamicsTrims_t *magZero)
                     mp[evSample].rawX = point.x[2];
                     mp[evSample].rawY = point.y[2];
                     
-				    printf("evSample=%d\n", evSample);
+					// print sample capture
+				    printf("evSample=%d,", evSample);
 					npf_snprintf(buf, sizeof(buf), "%f",sum_vec_angle);
 				    printf("sum_vec_angle=%s\n", buf);
 
@@ -343,7 +355,7 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 				     magZeroTempMax.raw[axis] = magADC[axis];  
 			}
 				adc_sample++;
-	     	} // end timer sample capture loop
+	     	} // end sample capture loop
 			else 
 			{
 				// calibration calculations
@@ -358,7 +370,9 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 				}
 				
 				// buffer filled over at least 360 degrees
-				if ( sum_vec_angle >= 360.0f && sum_vec_angle <= 400.0f && (MAG_SAMPLES == evSample) )
+				//if ( sum_vec_angle >= 360.0f && sum_vec_angle <= 400.0f && (MAG_SAMPLES == evSample) )	
+			    // at least 340 degrees of rotation
+			    if ( sum_vec_angle >= 340.0f )
 				{
 				// advanced calibration
 				float sum_evb11 = 0;
@@ -369,17 +383,18 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 				float detB = 0;
 				float eValX = 0;
 				float eValY = 0;
-				float eValScale = 0;
+				// float eValScale = 0; // moved to globals
 				float eVecX = 0;
 				float eVecY = 0;
 				float primary = 0;
 				float secondary = 0;
 				float phase1 = 0;
 				float phase2 = 0;
-				float phase = 0;
+				//float phase = 0; // moved to globals
+				uint16_t samples = evSample;
 				
 				evSample=0;				
-				while ( MAG_SAMPLES > evSample )
+				while ( evSample < samples)
 				{ 
 				  // adjust offsets
 				  mp[evSample].magX = (mp[evSample].rawX - magZero->raw[X]) / 1000.0f;  // milliGaus
@@ -414,10 +429,10 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 				
 				  // Co-variance matrix
 				  // divide by number of samples
-				  sum_evb11 /= MAG_SAMPLES_F;
-				  sum_evb12 /= MAG_SAMPLES_F;
-				  sum_evb21 /= MAG_SAMPLES_F;
-				  sum_evb22 /= MAG_SAMPLES_F;
+				  sum_evb11 /= (float)samples; //MAG_SAMPLES_F;
+				  sum_evb12 /= (float)samples; //MAG_SAMPLES_F;MAG_SAMPLES_F;
+				  sum_evb21 /= (float)samples; //MAG_SAMPLES_F;MAG_SAMPLES_F;
+				  sum_evb22 /= (float)samples; //MAG_SAMPLES_F;MAG_SAMPLES_F;
 				
 				  // Trace of Matrix A -(x^2 + y^2)
 				  trB = -(sum_evb11+sum_evb22);
@@ -468,11 +483,11 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 				  
 				  // 0 to 180 degrees - x-axis length - length of primary axis
 				  // 90 to 270 degrees - y axis length - length of secondary axis
-                  // primary  = sqrtf(powf(mp[0].magX-mp[14].magX,2) + powf(mp[0].magY-mp[14].magY,2));
+                  // was previoulsy
+ 				  // primary  = sqrtf(powf(mp[0].magX-mp[14].magX,2) + powf(mp[0].magY-mp[14].magY,2));
                   // secondary= sqrtf(powf(mp[7].magX-mp[22].magX,2) + powf(mp[7].magY-mp[22].magY,2));
 
-                  // singular radius values, roots of the eigen values (points on circumference of circle)
-				  // THIS IS CAUSING ISSUES
+                  // singular radius values, roots of the eigen values (points on circumference of a circle)
                   primary = sqrtf(2.0f*eValX);
 				  secondary = sqrtf(2.0f*eValY);
 
@@ -563,12 +578,10 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 				  npf_snprintf(buf, sizeof(buf),"%f",radius);
 				  printf("circle radius=%s\n", buf);
 				  
-				  // should be declared up front
 				  float sum_diff1=0;
 				  float sum_diff2=0;
-
 				  evSample=0;
-				  while ( MAG_SAMPLES > evSample )
+				  while ( evSample < samples )
 					  {
 						sum_diff1 += powf( sqrtf( powf(mp[evSample].magX,2) + powf(mp[evSample].magY,2) ) - radius, 2);
 						sum_diff2 += powf( sqrtf( powf(mp[evSample].magX*softIron[0][0] + mp[evSample].magY*softIron[1][0],2) + 
@@ -582,20 +595,11 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 						evSample++;
 					  }
 				  // standard deviations
-				  sd1 = sqrtf(sum_diff1/(MAG_SAMPLES-1));
-				  sd2 = sqrtf(sum_diff2/(MAG_SAMPLES-1));
+				  sd1 = sqrtf(sum_diff1/((float)samples-1));  //(MAG_SAMPLES-1));
+				  sd2 = sqrtf(sum_diff2/((float)samples-1));  //(MAG_SAMPLES-1));
+				  // log standard deviaton before and after
 				  printf("Raw STD=%d Corrected STD=%d\n",(int)roundf(sd1*1000),(int)roundf(sd2*1000));				  
-					  	  
-				  //evSet = 1;   // eigenvalues set ok
-				  // display
-				  /* if(cliMode && feature(FEATURE_DISPLAY)) {
-					  displayShowFixedPage(PAGE_CLI_MODE);
-				  } 
-				  else {
-					displayResetPageCycling();
-					displayEnablePageCycling();
-				  } */
-				  
+					  	  		  
 				  // 8 second hold time
 				  notifyUpdateAt = currentTime + 8000000;
 				  displayShowFixedPage(PAGE_CALIBRATING_MAG_SUCCESS);
@@ -607,8 +611,7 @@ void updateCompass(flightDynamicsTrims_t *magZero)
 				}
 				// failed advance calibration step
 				else {
-					printf("Failed to collect 30 samples over one rotation..\n");
-					//evSet = 2;
+					printf("Failed to rotated 340 degress within time period\n");
 					// 8 second hold time
 					notifyUpdateAt = currentTime + 8000000;
 					calib_rotation=(uint16_t)sum_vec_angle;
