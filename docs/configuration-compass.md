@@ -56,7 +56,7 @@ e.g set offset to 90 if the board/mag is rotated 90 degrees.
 
 ### External Mag Alignment
 
-When using external mag, you have to be sure that the magnetometer is aligned with the arrow of the board pointing to the front and it is not placed upside down. If it is rotated and/or flipped, then you have to configure the align_mag parameter with one of this values:
+When using external mag, you have to be sure that the magnetometer is aligned with the arrow of the board pointing to the front and it is not placed upside down. If it is rotated and/or flipped, then you have to configure the align_mag parameter with one of these values:
 
 DEFAULT
 CW0
@@ -71,7 +71,7 @@ CW270FLIP
 
 ### Magnetic Declination
 
-To change magnetic declination you have to set correct declination of your spesific location, which can be found [here](www.magnetic-declination.com).
+To change magnetic declination you have to set correct declination of your spesific location, which can be found [here](http://www.magnetic-declination.com).
 
 If your magnetic declination readings are e.g. +3° 34' , the value entered in the u360gts configurator is 334. For west declination, use a minus value, e.g. for 1° 32' W, the value entered in the u360gts configurator is -132. In all cases (both CLI and GUI), the least significant digits are minutes, not decimal degrees.
 
