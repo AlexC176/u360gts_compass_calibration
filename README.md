@@ -38,6 +38,6 @@ Check out the [releases](https://github.com/raul-ortega/u360gts/releases) page.
 # How To Get Help
 
 - [Ask in u360gts facebook group](https://www.facebook.com/groups/u360gts/)
-- [Post in the spanish community (español)](http://www.zonafpv.com/foro/estacion-de-tierra/u360gts-seguidor-de-antena-de-rotacion-continua-360o/)
 - [Post in Jelle737's Build Log u360gts: 360° antenna tracker on rcgropus](https://www.rcgroups.com/forums/showthread.php?2964122-u360gts-360%C2%B0-antenna-tracker)
 - [Submit a new issue](https://github.com/raul-ortega/u360gts/issues)
+- [Video tutorials](https://github.com/raul-ortega/u360gts/blob/master/docs/video-tutorials.md)
