@@ -82,6 +82,7 @@ extern bool gotFix;
 extern bool gotTelemetry;
 extern bool lostTelemetry;
 extern bool homeSet_BY_GPS;
+extern bool homeSet_BY_LAST;
 extern bool homeSet;
 extern bool homeReset;
 
@@ -894,7 +895,9 @@ void showTelemetryPage(void){
     if(!PROTOCOL(TP_MFD)) {
     	if(homeSet_BY_GPS && homeSet)
     		tfp_sprintf(lineBuffer, "HOME SET <GPS>");
-    	else if(!homeSet_BY_GPS && homeSet)
+    	else if(homeSet_BY_LAST && homeSet)
+    	            tfp_sprintf(lineBuffer, "HOME SET <LAST>");
+    	else if(homeSet)
     		tfp_sprintf(lineBuffer, "HOME SET <AIRCRAFT>");
     	else if(!homeSet || homeReset)
     		tfp_sprintf(lineBuffer, "HOME NOT SET");
